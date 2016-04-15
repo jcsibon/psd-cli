@@ -16,7 +16,8 @@ program
   .version(require('../package.json').version)
   .arguments('<file...>')
   .option('-c, --convert', 'Convert to PNG file named <FILENAME>.png')
-  .option('-t, --text', 'Extract text content to <FILENAME>.txt')
+  .option('-t, --extract-text', 'Extract txt content to <FILENAME>/<FILENAME>.txt')
+  .option('-p, --extract-png', 'Extract png content to <FILENAME>/<LAYERNAME>.png')  
   .option('-o, --open', 'Preview file after conversion (triggers -c option)')
   .action(processFiles)
   .parse(process.argv);
@@ -41,6 +42,38 @@ function convertFile(filepath, psdPromise, cb) {
 
 // extract text from PSD file
 function extractTextFromFile(filepath, psdPromise, cb) {
+  var fileText = filepath.replace(/\.psd$/, '.txt');
+  var fileString = '';
+
+  psdPromise.then(function(psd) {
+
+    psd.tree().export().children.forEach(function(child) {
+      var layer = new PSDLayer([], child);
+      var text = layer.extractText();
+
+      text.forEach(function(t) {
+        fileString += '\n\n' + '---';
+        fileString += '\n' + t.path.join(' > ');
+        fileString += '\n' + '---';
+        fileString += '\n\n' + t.text.replace(/\r/g, '\n');
+      });
+    });
+
+    fs.writeFile(fileText, fileString, function(err) {
+      if (err) {
+        console.log(chalk.red.bold("Error while saving %s"), fileText);
+        return cb(err);
+      }
+
+      console.log(chalk.gray("Text saved to %s"), fileText);
+      filesProcessed.push(fileText);
+      cb(null, fileText);
+    });
+  });
+}
+
+// extract PNG from PSD file
+function extractPNGFromFile(filepath, psdPromise, cb) {
   var fileText = filepath.replace(/\.psd$/, '.txt');
   var fileString = '';
 
