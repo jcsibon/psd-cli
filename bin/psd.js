@@ -16,8 +16,8 @@ program
   .version(require('../package.json').version)
   .arguments('<file...>')
   .option('-c, --convert', 'Convert to PNG file named <FILENAME>.png')
-  .option('-t, --extract-text', 'Extract txt content to <FILENAME>/<FILENAME>.txt')
-  .option('-p, --extract-png', 'Extract png content to <FILENAME>/<LAYERNAME>.png')  
+  .option('-t, --extracttext', 'Extract txt content to <FILENAME>/<FILENAME>.txt')
+  .option('-p, --extractpng', 'Extract png content to <FILENAME>/<LAYERNAME>.png')  
   .option('-o, --open', 'Preview file after conversion (triggers -c option)')
   .action(processFiles)
   .parse(process.argv);
@@ -74,32 +74,9 @@ function extractTextFromFile(filepath, psdPromise, cb) {
 
 // extract PNG from PSD file
 function extractPNGFromFile(filepath, psdPromise, cb) {
-  var fileText = filepath.replace(/\.psd$/, '.txt');
-  var fileString = '';
-
   psdPromise.then(function(psd) {
-
     psd.tree().export().children.forEach(function(child) {
-      var layer = new PSDLayer([], child);
-      var text = layer.extractText();
-
-      text.forEach(function(t) {
-        fileString += '\n\n' + '---';
-        fileString += '\n' + t.path.join(' > ');
-        fileString += '\n' + '---';
-        fileString += '\n\n' + t.text.replace(/\r/g, '\n');
-      });
-    });
-
-    fs.writeFile(fileText, fileString, function(err) {
-      if (err) {
-        console.log(chalk.red.bold("Error while saving %s"), fileText);
-        return cb(err);
-      }
-
-      console.log(chalk.gray("Text saved to %s"), fileText);
-      filesProcessed.push(fileText);
-      cb(null, fileText);
+      console.log("hello");
     });
   });
 }
@@ -132,11 +109,18 @@ function processFiles(files, env) {
       });
     }
     // extract text data
-    if (program.text) {
+    if (program.extracttext) {
       asyncTasks.push(function(cb) {
         extractTextFromFile(filepath, psdPromise, cb);
       });
     }
+    // extract Png data
+    if (program.extractpng) {
+      asyncTasks.push(function(cb) {
+        extractPngFromFile(filepath, psdPromise, cb);
+      });
+    }
+
 
     async.series(asyncTasks, cb);
 
